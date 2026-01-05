@@ -1,0 +1,25 @@
+# Large data files
+data/*.csv
+temp_results/*.pkl
+temp_results/*.csv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+
+# Notebooks
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+*.log
