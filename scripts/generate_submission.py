@@ -18,10 +18,11 @@ start_time = time.time()
 # 路径配置
 MODEL_PATH = '/root/autodl-tmp/news-rec-data/xgb_ranker.json'
 FEATURE_PATH = './temp_results/features.pkl'
-TEST_FEATURE_PATH = './temp_results/test_user_features.pkl'  # 测试用户特征
-OUTPUT_PATH = '/root/autodl-tmp/news-rec-data/submission_ranker_top5_v2.csv'
-CANDIDATES_PER_USER = 150  # 增加候选多样性
-TOP_K = 5                  # 最终提交Top-5
+TEST_FEATURE_PATH = './temp_results/test_user_features.pkl'
+FUSED_RECALLS_PATH = '/root/autodl-tmp/news-rec-data/fused_recalls.pkl'  # 融合召回
+OUTPUT_PATH = '/root/autodl-tmp/news-rec-data/submission_ranker_top5_v3.csv'  # v3版本
+CANDIDATES_PER_USER = 150  # 从融合召回中取Top-150
+TOP_K = 5
 BATCH_SIZE = 200_000       # 每批构造与预测的行数
 
 # ========== 加载数据 ==========
@@ -47,17 +48,21 @@ print(f'  训练用户: {len(user_features):,}')
 print(f'  测试用户: {len(test_user_features):,}')
 print(f'  文章特征: {len(article_features):,}')
 # ========== 预备集合 ==========
-print('\n[2/5] 准备候选...')
-# 全局热度
+print('\n[2/5] 准备候选（从融合召回）...')
+
+# 加载融合召回结果（包含4种方法的加权融合）
+import os
+if os.path.exists(FUSED_RECALLS_PATH):
+    print(f"Loading fused recalls from {FUSED_RECALLS_PATH}")
+    with open(FUSED_RECALLS_PATH, 'rb') as f:
+        fused_recalls = pickle.load(f)
+else:
+    print(f"Warning: {FUSED_RECALLS_PATH} not found! Falling back to basic popularity.")
+    fused_recalls = None
+
+# 备选方案：全局热度
 popularity = train['click_article_id'].value_counts().index.tolist()
 global_top = popularity[:CANDIDATES_PER_USER]
-
-# 类别热度
-cat_pop = defaultdict(list)
-for cat_id, group in articles.groupby('category_id'):
-    aids = group['article_id'].values
-    clicks = train[train['click_article_id'].isin(aids)]['click_article_id'].value_counts()
-    cat_pop[cat_id] = clicks.index.tolist()[:CANDIDATES_PER_USER]
 
 test_users = test['user_id'].unique()
 
@@ -81,11 +86,13 @@ default_cat_feat = {
 cand_rows = []
 for uid in test_users:
     seen = test_user_history.get(uid, set())  # 用测试集历史
-    user_cat = test_user_features.get(uid, {}).get('top_category', 0)  # 用测试集偏好
-    candidates = []
-    if user_cat in cat_pop:
-        candidates.extend(cat_pop[user_cat])
-    candidates.extend(global_top)
+    
+    # 优先使用融合召回，失败时用全局热门
+    if fused_recalls and uid in fused_recalls:
+        candidates = fused_recalls[uid]
+    else:
+        candidates = global_top
+    
     uniq = []
     s = set()
     for aid in candidates:
