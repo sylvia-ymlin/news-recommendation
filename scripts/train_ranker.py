@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""训练排序模型（XGBoost GPU）"""
+"""训练排序模型（XGBoost CPU/GPU自适应）"""
 import os
 import pickle
 import time
@@ -7,7 +7,7 @@ import numpy as np
 import xgboost as xgb
 
 print('\n' + '='*80)
-print('训练排序模型 - XGBoost GPU')
+print('训练排序模型 - XGBoost （CPU/GPU自适应）')
 print('='*80 + '\n')
 
 start_time = time.time()
@@ -40,12 +40,21 @@ dtrain = xgb.DMatrix(X_train, label=y_train)
 dvalid = xgb.DMatrix(X_valid, label=y_valid)
 
 # ========== 训练 ==========
-print('\n[4/4] 训练模型（GPU）...')
+# 自动检测GPU可用性
+try:
+    gpu_available = len(xgb.device.cuda().get_device_properties()) > 0
+except:
+    gpu_available = False
+
+tree_method = 'gpu_hist' if gpu_available else 'hist'
+predictor = 'gpu_predictor' if gpu_available else 'cpu_predictor'
+print(f'\n[4/4] 训练模型（{"GPU" if gpu_available else "CPU"}模式）...')
+
 params = {
     'objective': 'binary:logistic',
     'eval_metric': ['auc', 'aucpr'],
-    'tree_method': 'gpu_hist',
-    'predictor': 'gpu_predictor',
+    'tree_method': tree_method,
+    'predictor': predictor,
     'max_depth': 8,
     'eta': 0.1,
     'subsample': 0.8,

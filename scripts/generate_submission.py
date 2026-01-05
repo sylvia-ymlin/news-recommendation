@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""生成提交文件 - XGBoost GPU 排序"""
+"""生成提交文件 - XGBoost 排序（CPU/GPU自适应）"""
 import pandas as pd
 import numpy as np
 import pickle
@@ -10,7 +10,7 @@ import time
 import os
 
 print('\n' + '='*80)
-print('生成提交文件 - XGBoost GPU 排序')
+print('生成提交文件 - XGBoost 排序')
 print('='*80 + '\n')
 
 start_time = time.time()
