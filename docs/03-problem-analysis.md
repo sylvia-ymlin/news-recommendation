@@ -6,6 +6,21 @@
 - **技术栈**：Python, Pandas, NumPy, Scikit-learn, Multiprocessing, Git
 - **优化成果**：从4分钟优化到5秒（48倍加速）
 
+## 近期进展（2026-01-05/06）
+- **存储定位**：确认100GB数据盘 `/root/autodl-tmp` 可用，所有大文件转存至此
+- **快速基线**：`baseline_fast.py` 热度+类别偏好，50k用户仅14秒生成Top50
+- **特征工程**：提取用户9维、文章7维、类别4维，保存 `temp_results/features.pkl`
+- **样本构建**：全量111万正样本 + 4倍负采样，共556万样本，存 `/root/autodl-tmp/news-rec-data/training_samples.pkl`
+- **排序训练**：XGBoost GPU (`gpu_hist`)，21维特征，500轮，验证AUC=0.9906，模型 `/root/autodl-tmp/news-rec-data/xgb_ranker.json`
+- **批量推理**：批量构造特征+分批预测，Top5提交文件
+- **提交结果**：
+  - v1（未用测试集特征）：MRR = 0.0079 ❌ 所有用户推荐相同
+  - v2（用测试集历史+偏好）：MRR = 0.0119 ⚠️ 个性化但仍低于baseline (0.0192)
+- **问题诊断**：XGBoost在训练集过拟合（AUC=0.99），但测试集表现差，可能因为：
+  1. 训练特征与测试特征分布不一致（训练用户vs测试用户）
+  2. 候选集策略不够优（类别热度可能不准）
+  3. 模型过于复杂，简单热度baseline反而更稳定
+
 ---
 
 ## 问题一：零召回率问题 - 冷启动用户识别与处理
