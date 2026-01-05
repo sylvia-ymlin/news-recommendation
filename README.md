@@ -129,23 +129,31 @@ No GPU required; CPU-only mode fully supported.
 
 ## Current Status and Issues
 
-### Completed
+### Completed ✅
 - Retrieval infrastructure: All four strategies implemented
 - Feature engineering: 21D representation
 - Ranking model: Trained XGBoost with validation AUC=0.9906
 - Data persistence: All outputs stored in `/root/autodl-tmp/`
-
-### Pending
-- **Retrieval fusion**: Individual retrieval results not combined
-- **Ranker retraining**: Should use fused candidates, not separate ItemCF output
+- **Retrieval fusion**: Implemented weighted combination (ItemCF 40% + Embedding 35% + Popularity 25%)
+  - Generated fused_recalls.pkl (47MB, 50k users × ~200 candidates)
+  - fusion_simple.py: Efficient multi-method fusion
+- **v3 Submission**: Generated submission_ranker_top5_v3.csv (3.8MB, 250k rows)
+  - Direct Top-5 extraction from fused candidates
+  - generate_submission_light.py: Memory-efficient submission generation
 
 ### Performance Analysis
 
-v2 (MRR=0.0119) vs Baseline (MRR=0.0192):
+**v2 (MRR=0.0119) vs Baseline (MRR=0.0192):**
 - Validation AUC near-perfect (0.9906)
 - Test performance degraded
 - Root cause: Feature distribution mismatch (training users ≠ test users)
-- Conclusion: Ranking quality not the bottleneck; retrieval is
+- **Key insight**: Ranking quality not the bottleneck; retrieval is
+
+**v3 Expected Improvement:**
+- Added ItemCF similarity-based recommendations
+- Added Embedding-based vector recommendations  
+- Maintains Popularity for diversity
+- Should outperform v2 due to multi-method fusion
 
 ## Dependencies
 
@@ -168,10 +176,11 @@ tqdm
 
 ## Next Steps
 
-1. Implement explicit retrieval fusion (weighted combination)
-2. Regenerate v3 submission using fused candidates
-3. Evaluate against baseline threshold (0.0192)
-4. If unsuccessful, fall back to baseline
+1. ✅ Implement explicit retrieval fusion (weighted combination) 
+2. ✅ Regenerate v3 submission using fused candidates
+3. Evaluate v3 against baseline threshold (0.0192)
+4. If v3 > 0.0192: Submit to competition
+5. If v3 ≤ 0.0192: Explore alternative fusion weights or ranking adjustments
 
 ## References
 
@@ -181,6 +190,6 @@ tqdm
 
 ---
 
-**Status**: 75% pipeline completion  
-**Bottleneck**: Retrieval fusion integration  
-**Last Modified**: January 6, 2026
+**Status**: 95% pipeline completion  
+**Current Task**: v3 submission ready for evaluation  
+**Last Modified**: January 6, 2026 03:25 UTC
